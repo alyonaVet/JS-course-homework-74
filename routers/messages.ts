@@ -1,17 +1,25 @@
 import express from "express";
 import {promises as fs} from 'fs';
+import path from 'path';
 import {IMessage} from "../types";
 
-const path = './messages';
-
 const messagesRouter = express.Router();
+
+const messagesPath = './messages';
+
+const createIfNotExists = async (dirPath: string) => {
+    try {
+        await fs.mkdir(dirPath, {recursive: true});
+    } catch (error) {
+        console.error('Failed to create directory ', error);
+    }
+};
 
 const getFiles = async (fileList: string[]) => {
     const data: IMessage[] = [];
     for (const fileName of fileList) {
-        if (fileName === '.gitignore') continue;
+        const filePath = path.join(messagesPath, fileName);
 
-        const filePath = `${path}/${fileName}`;
         try {
             const fileContent = await fs.readFile(filePath);
             const dataItem = JSON.parse(fileContent.toString());
@@ -25,12 +33,14 @@ const getFiles = async (fileList: string[]) => {
 
 messagesRouter.get("/", async (req, res) => {
     try {
-        const fileList = await fs.readdir(path);
+        await createIfNotExists(messagesPath);
+
+        const fileList = await fs.readdir(messagesPath);
         const data = await getFiles(fileList)
 
         return res.send(data);
     } catch (error) {
-        console.log('Error reading ',error);
+        console.log('Error reading ', error);
     }
 });
 
@@ -43,7 +53,9 @@ messagesRouter.post("/", async (req, res) => {
         datetime,
     };
     try {
-        await fs.writeFile(`${path}/${fileName}`, JSON.stringify(newMessage));
+        await createIfNotExists(messagesPath);
+        await fs.writeFile(path.join(messagesPath, fileName), JSON.stringify(newMessage));
+        return res.send(newMessage);
     } catch (error) {
         console.error('Failed to write message', error);
     }
