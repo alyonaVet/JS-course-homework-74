@@ -9,6 +9,8 @@ const messagesRouter = express.Router();
 const getFiles = async (fileList: string[]) => {
     const data: IMessage[] = [];
     for (const fileName of fileList) {
+        if (fileName === '.gitignore') continue;
+
         const filePath = `${path}/${fileName}`;
         try {
             const fileContent = await fs.readFile(filePath);
